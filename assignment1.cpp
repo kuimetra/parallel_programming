@@ -9,7 +9,7 @@ using namespace std;
 
 #define ull unsigned long long
 
-void printArray(ull *arr, int size)
+void printArray(ull* arr, int size)
 {
     for (int i = 0; i < size; i++)
     {
@@ -18,7 +18,7 @@ void printArray(ull *arr, int size)
     cout << endl;
 }
 
-void merge(ull *arr, int start, int middle, int end)
+void merge(ull* arr, int start, int middle, int end)
 {
     int arr1_size = middle - start + 1;
     int arr2_size = end - middle;
@@ -45,7 +45,7 @@ void merge(ull *arr, int start, int middle, int end)
             arr[k] = arr1[i];
             i++;
         }
-        else 
+        else
         {
             arr[k] = arr2[j];
             j++;
@@ -71,7 +71,7 @@ void merge(ull *arr, int start, int middle, int end)
     delete[] arr2;
 }
 
-void mergeSort(ull *arr, int start, int end)
+void mergeSort(ull* arr, int start, int end)
 {
     if (start < end)
     {
@@ -123,7 +123,7 @@ void mergeSort(ull *arr, int start, int end)
 void sampleSort(ull* arr, int n, int p) {
     // Divide the array into p partitions
     int partitionSize = n / p;
-    ull** partitions = new ull* [p];
+    ull** partitions = new ull * [p];
 
     for (int i = 0; i < p; i++)
     {
@@ -160,7 +160,7 @@ void sampleSort(ull* arr, int n, int p) {
     // cout << "\ndiv / non-div : " << div << " / " << nonDiv << endl;
 
     double step = (double)nonDiv / (double)(div + 1);
-    int startIndex = (step < 1) ? 0: (int)round(step);
+    int startIndex = (step < 1) ? 0 : (int)round(step);
     step = (step < 1) ? 1 : (int)round(step);
 
     int divIndex = 0;
@@ -171,7 +171,7 @@ void sampleSort(ull* arr, int n, int p) {
     {
         int bucketDivCounter = 0;
 
-        for (int j = startIndex; j < partitionSize; j+=step+1) // for each div
+        for (int j = startIndex; j < partitionSize; j += step + 1) // for each div
         {
             if (bucketDivCounter == div) break;
             dividers[divIndex++] = partitions[i][j];
@@ -196,43 +196,29 @@ void sampleSort(ull* arr, int n, int p) {
     printArray(dividers, dividersSize);
     cout << endl;
 
-    int bucketDelimSize = p - 1;
-    ull* bucketDelims = new ull[bucketDelimSize];
+    int bucketDelSize = p - 1;
+    ull* bucketDel = new ull[bucketDelSize];
 
-    int bucketNonDelim = p * div - bucketDelimSize;
-    double delimStep = (double)bucketNonDelim / (double)(bucketDelimSize + 1);
-    int delimStartIndex = (delimStep < 1) ? 0 : (int)round(delimStep);
-    delimStep = (delimStep < 1) ? 1 : (int)round(delimStep);
+    int notDel = dividersSize - bucketDelSize;
+    int delStep = notDel / p + 1;
+    int rem = notDel % p;
+    int k = -1;
 
-    // cout << "\ndiv / non-div : " << bucketDelimSize << " / " << bucketNonDelim << endl;
-    // cout << "start index, step : " << delimStartIndex << ", " << delimStep << endl << endl;
+    int bucketDelIndex = 0;
 
-    int bucketDelimCounter = 0;
-    int delimIndex = 0;
-
-    for (int i = delimStartIndex; i < dividersSize; i += delimStep + 1) // for each div
+    for (int i = 1; i < p; i++)
     {
-        if (bucketDelimCounter == bucketDelimSize) break;
-        bucketDelims[delimIndex++] = dividers[i];
-        bucketDelimCounter++;
-    }
-
-    if (bucketDelimCounter != bucketDelimSize)
-    {
-        int i = delimStartIndex + 1;
-        while (bucketDelimCounter != bucketDelimSize)
+        k += delStep;
+        bucketDel[bucketDelIndex++] = dividers[k];
+        if (rem > 0)
         {
-            bucketDelims[delimIndex++] = dividers[i];
-
-            i += delimStep + 1;
-            bucketDelimCounter++;
+            k++;
+            rem--;
         }
     }
 
     cout << "Pick every p'th divider: ";
-    printArray(bucketDelims, bucketDelimSize);
-
-
+    printArray(bucketDel, bucketDelSize);
     for (int i = 0; i < p; i++)
     {
         delete[] partitions[i];
