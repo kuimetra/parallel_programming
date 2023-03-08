@@ -381,17 +381,17 @@ int main()
     cout << endl;
 
     double startTime = omp_get_wtime();
-    arr = sampleSort(arr, n, p);
+    ull* sortedArr = sampleSort(arr, n, p);
     double endTime = omp_get_wtime();
 
     cout << "Sorted array: ";
-    printArray(arr, n);
+    printArray(sortedArr, n);
     cout << endl;
 
     // Verify that the array is sorted
     for (int i = 0; i < n - 1; i++)
     {
-        if (arr[i] > arr[i + 1])
+        if (sortedArr[i] > sortedArr[i + 1])
         {
             cout << "Error: Array not sorted" << endl;
             break;
