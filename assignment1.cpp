@@ -208,39 +208,22 @@ ull* sampleSort(ull* arr, int n, int p) {
     int div = p - 1;
     int dividersSize = p * div;
 
+    double p1t1Start = omp_get_wtime();
     ull** partitions = getPartitions(arr, partitionSize, p);
     for (int i = 0; i < p; i++)
     {
         mergeSort(partitions[i], 0, partitionSize - 1);
-        printArray(partitions[i], partitionSize);
     }
-    cout << endl;
+    double p1t1End = omp_get_wtime();
 
+    double p1t2Start = omp_get_wtime();
     ull* dividers = getDividers(partitions, div, dividersSize, partitionSize, p);
     mergeSort(dividers, 0, dividersSize - 1);
-    for (int i = 0; i < dividersSize; i++)
-    {
-        cout << dividers[i] << " ";
-    }
-    cout << endl << endl;
+    double p1t2End = omp_get_wtime();
 
+    double p1t3Start = omp_get_wtime();
     ull* bucketDel = getBucketDel(dividers, div, dividersSize, p);
-    for (int i = 0; i < div; i++)
-    {
-        cout << bucketDel[i] << " ";
-    }
-    cout << endl << endl;
-
     ull** sizeMat = getSizeMatrix(partitions, bucketDel, partitionSize, div, p);
-    for (int i = 0; i < p; i++)
-    {
-        for (int j = 0; j < p; j++)
-        {
-            cout << sizeMat[i][j] << " ";
-        }
-        cout << endl;
-    }
-    cout << endl;
 
     ull* bucketSize = new ull[p];
     for (int i = 0; i < p; i++)
@@ -252,11 +235,6 @@ ull* sampleSort(ull* arr, int n, int p) {
         }
         bucketSize[i] = colSum;
     }
-    for (int i = 0; i < p; i++)
-    {
-        cout << bucketSize[i] << " ";
-    }
-    cout << endl << endl;
 
     ull** bucket = new ull * [p];
     for (int i = 0; i < p; i++)
@@ -309,22 +287,14 @@ ull* sampleSort(ull* arr, int n, int p) {
             }
         }
     }
+    double p1t3End = omp_get_wtime();
 
-    for (int i = 0; i < p; i++)
-    {
-        cout << "Bucket [" << i + 1 << "] : ";
-        for (int j = 0; j < bucketSize[i]; j++)
-        {
-            cout << bucket[i][j] << " ";
-        }
-        cout << endl;
-    }
-    cout << endl;
-
+    double p1t4Start = omp_get_wtime();
     for (int i = 0; i < p; i++)
     {
         mergeSort(bucket[i], 0, bucketSize[i]);
     }
+    double p1t4End = omp_get_wtime();
 
     ull* sortedArray = new ull[n];
     int ind = 0;
@@ -335,6 +305,12 @@ ull* sampleSort(ull* arr, int n, int p) {
             sortedArray[ind++] = bucket[i][j];
         }
     }
+
+    cout << "Problem 2" << endl;
+    cout << "1. " << p1t1End - p1t1Start << "s" << endl;
+    cout << "2. " << p1t2End - p1t2Start << "s" << endl;
+    cout << "3. " << p1t3End - p1t3Start << "s" << endl;
+    cout << "4. " << p1t4End - p1t4Start << "s" << endl;
 
     for (int i = 0; i < p; i++)
     {
@@ -365,8 +341,8 @@ int main()
     cout << "Enter p: ";
     cin >> p;*/
 
-    n = 24;
-    p = 3;
+    n = 5000000;
+    p = 100;
 
     int seed = 123;
     init_genrand64(seed);
@@ -377,16 +353,9 @@ int main()
         arr[i] = genrand64_int64() % 100;
     }
 
-    printArray(arr, n);
-    cout << endl;
-
     double startTime = omp_get_wtime();
     ull* sortedArr = sampleSort(arr, n, p);
     double endTime = omp_get_wtime();
-
-    cout << "Sorted array: ";
-    printArray(sortedArr, n);
-    cout << endl;
 
     // Verify that the array is sorted
     for (int i = 0; i < n - 1; i++)
@@ -399,7 +368,7 @@ int main()
     }
 
     double time_used = endTime - startTime;
-    cout << "Time used: " << time_used << " seconds" << endl;
+    cout << "\nTime used in total: " << time_used << "s" << endl;
 
     delete[] arr;
     return 0;
