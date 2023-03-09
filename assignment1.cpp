@@ -103,10 +103,8 @@ ull** getPartitions(ull* arr, int size, int p)
         int start = i * size;
         int end = start + size - 1;
 
-        // allocate memory for partition
         partitions[i] = new ull[end - start + 1];
 
-        // copy partition from original array to partition array
         for (int j = start, k = 0; j <= end; j++, k++)
         {
             partitions[i][k] = arr[j];
@@ -122,15 +120,14 @@ ull* getDividers(ull** partitions, int div, int dividersSize, int size, int p)
     ull* dividers = new ull[dividersSize];
 
     int step = nonDiv / p + 1;
-
     int divIndex = 0;
 
-    for (int i = 0; i < p; i++) // for each bucket
+    for (int i = 0; i < p; i++)
     {
         int r = nonDiv % p;
         int q = -1;
 
-        for (int j = 1; j < p; j++) // for each div
+        for (int j = 1; j < p; j++)
         {
             q += step;
             dividers[divIndex++] = partitions[i][q];
@@ -213,17 +210,25 @@ ull* sampleSort(ull* arr, int n, int p) {
     for (int i = 0; i < p; i++)
     {
         mergeSort(partitions[i], 0, partitionSize - 1);
+        // printArray(partitions[i], partitionSize);
     }
     double p1t1End = omp_get_wtime();
 
     double p1t2Start = omp_get_wtime();
     ull* dividers = getDividers(partitions, div, dividersSize, partitionSize, p);
     mergeSort(dividers, 0, dividersSize - 1);
+    // printArray(dividers, dividersSize);
     double p1t2End = omp_get_wtime();
 
     double p1t3Start = omp_get_wtime();
     ull* bucketDel = getBucketDel(dividers, div, dividersSize, p);
     ull** sizeMat = getSizeMatrix(partitions, bucketDel, partitionSize, div, p);
+
+    // printArray(bucketDel, div);
+    /* for (int i = 0; i < p; i++)
+    {
+        printArray(sizeMat[i], p);
+    }*/
 
     ull* bucketSize = new ull[p];
     for (int i = 0; i < p; i++)
@@ -235,6 +240,7 @@ ull* sampleSort(ull* arr, int n, int p) {
         }
         bucketSize[i] = colSum;
     }
+    // printArray(bucketSize, p);
 
     ull** bucket = new ull * [p];
     for (int i = 0; i < p; i++)
@@ -287,12 +293,19 @@ ull* sampleSort(ull* arr, int n, int p) {
             }
         }
     }
+
+    /* for (int i = 0; i < p; i++)
+    {
+        printArray(bucket[i], bucketSize[i]);
+    } */
+
     double p1t3End = omp_get_wtime();
 
     double p1t4Start = omp_get_wtime();
     for (int i = 0; i < p; i++)
     {
         mergeSort(bucket[i], 0, bucketSize[i]);
+        // printArray(bucket[i], bucketSize[i]);
     }
     double p1t4End = omp_get_wtime();
 
@@ -306,7 +319,6 @@ ull* sampleSort(ull* arr, int n, int p) {
         }
     }
 
-    cout << "Problem 2" << endl;
     cout << "1. " << p1t1End - p1t1Start << "s" << endl;
     cout << "2. " << p1t2End - p1t2Start << "s" << endl;
     cout << "3. " << p1t3End - p1t3Start << "s" << endl;
@@ -336,40 +348,52 @@ int main()
 {
     int n, p;
 
-    /*cout << "Enter n: ";
+    cout << "Enter n: ";
     cin >> n;
     cout << "Enter p: ";
-    cin >> p;*/
+    cin >> p;
+    cout << endl;
 
-    n = 5000000;
-    p = 100;
-
-    int seed = 123;
-    init_genrand64(seed);
-
-    ull* arr = new ull[n];
-    for (int i = 0; i < n; i++)
+    if (n % p == 0)
     {
-        arr[i] = genrand64_int64() % 100;
-    }
+        // omp_set_num_threads(p);
 
-    double startTime = omp_get_wtime();
-    ull* sortedArr = sampleSort(arr, n, p);
-    double endTime = omp_get_wtime();
+        int seed = 123;
+        init_genrand64(seed);
 
-    // Verify that the array is sorted
-    for (int i = 0; i < n - 1; i++)
-    {
-        if (sortedArr[i] > sortedArr[i + 1])
+        ull* arr = new ull[n];
+        for (int i = 0; i < n; i++)
         {
-            cout << "Error: Array not sorted" << endl;
-            break;
+            arr[i] = genrand64_int64() % 100;
         }
+
+        // printArray(arr, n);
+
+        double startTime = omp_get_wtime();
+        ull* sortedArr = sampleSort(arr, n, p);
+        double endTime = omp_get_wtime();
+
+        // printArray(sortedArr, n);
+
+        // verify that the array is sorted
+        for (int i = 0; i < n - 1; i++)
+        {
+            if (sortedArr[i] > sortedArr[i + 1])
+            {
+                cout << "Error: Array not sorted" << endl;
+                break;
+            }
+        }
+
+        double time_used = endTime - startTime;
+        cout << "\nTime used in total: " << time_used << "s" << endl;
+
+        delete[] arr;
+    }
+    else
+    {
+        cout << "Please choose p and n such that p is divisible by n" << endl;
     }
 
-    double time_used = endTime - startTime;
-    cout << "\nTime used in total: " << time_used << "s" << endl;
-
-    delete[] arr;
     return 0;
 }
