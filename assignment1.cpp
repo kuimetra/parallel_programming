@@ -9,101 +9,35 @@ using namespace std;
 
 #define ull unsigned long long
 
-void printArray(ull* arr, int size)
+void printArray(vector<ull> arr)
 {
-    for (int i = 0; i < size; i++)
+    for (int i = 0; i < arr.size(); i++)
     {
-        cout << arr[i] << " ";
+        cout << arr.at(i) << " ";
     }
     cout << endl;
 }
 
-void merge(ull* arr, int start, int middle, int end)
-{
-    int arr1_size = middle - start + 1;
-    int arr2_size = end - middle;
-
-    ull* arr1 = new ull[arr1_size];
-    ull* arr2 = new ull[arr2_size];
-
-    for (int i = 0; i < arr1_size; i++)
-    {
-        arr1[i] = arr[start + i];
-    }
-
-    for (int i = 0; i < arr2_size; i++)
-    {
-        arr2[i] = arr[middle + 1 + i];
-    }
-
-    int i = 0, j = 0, k = start;
-
-    while (i < arr1_size && j < arr2_size)
-    {
-        if (arr1[i] <= arr2[j])
-        {
-            arr[k] = arr1[i];
-            i++;
-        }
-        else
-        {
-            arr[k] = arr2[j];
-            j++;
-        }
-        k++;
-    }
-
-    while (i < arr1_size)
-    {
-        arr[k] = arr1[i];
-        i++;
-        k++;
-    }
-
-    while (j < arr2_size)
-    {
-        arr[k] = arr2[j];
-        j++;
-        k++;
-    }
-
-    delete[] arr1;
-    delete[] arr2;
-}
-
-void mergeSort(ull* arr, int start, int end)
-{
-    if (start < end)
-    {
-        int middle = start + (end - start) / 2;
-
-        mergeSort(arr, start, middle);
-        mergeSort(arr, middle + 1, end);
-
-        merge(arr, start, middle, end);
-    }
-}
-
-ull sum(ull* arr, int size)
+ull sum(vector<ull> arr, int end)
 {
     ull sum = 0;
-    for (int i = 0; i < size; i++)
+    for (int i = 0; i < end; i++)
     {
         sum += arr[i];
     }
     return sum;
 }
 
-ull** getPartitions(ull* arr, int size, int p)
+vector<vector<ull> > getPartitions(vector<ull> arr, int size, int p)
 {
-    ull** partitions = new ull * [p];
+    vector<vector<ull> > partitions(p);
 
     for (int i = 0; i < p; i++)
     {
         int start = i * size;
         int end = start + size - 1;
 
-        partitions[i] = new ull[end - start + 1];
+        partitions[i].resize(end - start + 1);
 
         for (int j = start, k = 0; j <= end; j++, k++)
         {
@@ -114,10 +48,10 @@ ull** getPartitions(ull* arr, int size, int p)
     return partitions;
 }
 
-ull* getDividers(ull** partitions, int div, int dividersSize, int size, int p)
+vector<ull> getDividers(vector<vector<ull> > partitions, int div, int divSize, int size, int p)
 {
     int nonDiv = size - div;
-    ull* dividers = new ull[dividersSize];
+    vector<ull> dividers(divSize);
 
     int step = nonDiv / p + 1;
     int divIndex = 0;
@@ -142,11 +76,11 @@ ull* getDividers(ull** partitions, int div, int dividersSize, int size, int p)
     return dividers;
 }
 
-ull* getBucketDel(ull* dividers, int div, int dividersSize, int p)
+vector<ull> getBucketDel(vector<ull> dividers, int div, int divSize, int p)
 {
-    ull* bucketDel = new ull[div];
+    vector<ull> bucketDel(div);
 
-    int notDel = dividersSize - div;
+    int notDel = divSize - div;
     int delStep = notDel / p + 1;
     int rem = notDel % p;
     int k = -1;
@@ -167,13 +101,13 @@ ull* getBucketDel(ull* dividers, int div, int dividersSize, int p)
     return bucketDel;
 }
 
-ull** getSizeMatrix(ull** partitions, ull* bucketDel, int partitionSize, int div, int p)
+vector<vector<ull> > getSizeMatrix(vector<vector<ull> > partitions, vector<ull> bucketDel, int partitionSize, int div, int p)
 {
-    ull** sizeMat = new ull * [p];
+    vector<vector<ull> > sizeMat(p);
 
     for (int i = 0; i < p; i++)
     {
-        sizeMat[i] = new ull[p];
+        sizeMat[i].resize(p);
         for (int k = 0; k < div; k++)
         {
             sizeMat[i][k] = 0;
@@ -199,71 +133,67 @@ ull** getSizeMatrix(ull** partitions, ull* bucketDel, int partitionSize, int div
     return sizeMat;
 }
 
-ull* sampleSort(ull* arr, int n, int p) {
-    // Divide the array into p partitions
+vector<ull> sampleSort(const vector<ull>& arr, int n, int p)
+{
     int partitionSize = n / p;
     int div = p - 1;
-    int dividersSize = p * div;
+    int divSize = p * div;
 
     double p1t1Start = omp_get_wtime();
-    ull** partitions = getPartitions(arr, partitionSize, p);
+    vector<vector<ull> > partitions = getPartitions(arr, partitionSize, p);
     for (int i = 0; i < p; i++)
     {
-        mergeSort(partitions[i], 0, partitionSize - 1);
-        printArray(partitions[i], partitionSize);
+        sort(partitions[i].begin(), partitions[i].begin() + partitionSize);
+        printArray(partitions[i]);
     }
     double p1t1End = omp_get_wtime();
 
     double p1t2Start = omp_get_wtime();
-    ull* dividers = getDividers(partitions, div, dividersSize, partitionSize, p);
-    mergeSort(dividers, 0, dividersSize - 1);
-    printArray(dividers, dividersSize);
+    vector<ull> dividers = getDividers(partitions, div, divSize, partitionSize, p);
+    sort(dividers.begin(), dividers.begin() + divSize);
+    printArray(dividers);
     double p1t2End = omp_get_wtime();
 
     double p1t3Start = omp_get_wtime();
-    ull* bucketDel = getBucketDel(dividers, div, dividersSize, p);
-    ull** sizeMat = getSizeMatrix(partitions, bucketDel, partitionSize, div, p);
+    vector<ull> bucketDel = getBucketDel(dividers, div, divSize, p);
+    vector<vector<ull> > sizeMat = getSizeMatrix(partitions, bucketDel, partitionSize, div, p);
 
-    printArray(bucketDel, div);
+    printArray(bucketDel);
     for (int i = 0; i < p; i++)
     {
-        printArray(sizeMat[i], p);
+        printArray(sizeMat[i]);
     }
-
-    ull* bucketSize = new ull[p];
+    
+    vector<ull> bucketSize(p, 0);
     for (int i = 0; i < p; i++)
     {
-        int colSum = 0;
         for (int j = 0; j < p; j++)
         {
-            colSum += sizeMat[j][i];
+            bucketSize[i] += sizeMat[j][i];
         }
-        bucketSize[i] = colSum;
     }
-    printArray(bucketSize, p);
+    printArray(bucketSize);
 
-    ull** bucket = new ull * [p];
+    vector<vector<ull> > bucket(p);
     for (int i = 0; i < p; i++)
     {
-        bucket[i] = new ull[bucketSize[i]];
+        bucket[i].resize(bucketSize[i]);
     }
-
-    bool** flags = new bool* [p];
+    
+    vector<vector<bool> > flags(p);
     for (int i = 0; i < p; i++)
     {
-        flags[i] = new bool[partitionSize];
+        flags[i].resize(partitionSize);
         for (int j = 0; j < partitionSize; j++)
         {
             flags[i][j] = false;
         }
     }
 
-    ull* bucketIndices = new ull[p];
-    for (int i = 0; i < p; i++)
-    {
-        bucketIndices[i] = 0;
-    }
-
+    
+    vector<ull> bucketIndices(p, 0);
+    printArray(bucketIndices);
+    
     for (int i = 0; i < p; i++)
     {
         for (int j = 0; j < div; j++)
@@ -294,36 +224,28 @@ ull* sampleSort(ull* arr, int n, int p) {
             }
         }
     }
-
+    
     for (int i = 0; i < p; i++)
     {
-        printArray(bucket[i], bucketSize[i]);
+        printArray(bucket[i]);
     }
-
-    cout << "Bucket sizes: ";
-    for (int i = 0; i < p; i++)
-    {
-        cout << bucketSize[i] << " ";
-    }
-    cout << endl;
-
+    
     double p1t3End = omp_get_wtime();
 
     double p1t4Start = omp_get_wtime();
     for (int i = 0; i < p; i++)
     {
-        mergeSort(bucket[i], 0, bucketSize[i] + 1);
-        printArray(bucket[i], bucketSize[i]);
+        sort(bucket[i].begin(), bucket[i].begin() + bucketSize[i]);
+        printArray(bucket[i]);
     }
     double p1t4End = omp_get_wtime();
 
-    ull* sortedArr = new ull[n];
-    int ind = 0;
-    for (int i = 0; i < p; i++)
+    vector<ull> sorted;
+    for (int i = 0; i < p; i++) 
     {
         for (int j = 0; j < bucketSize[i]; j++)
         {
-            sortedArr[ind++] = bucket[i][j];
+            sorted.push_back(bucket[i][j]);
         }
     }
 
@@ -332,7 +254,7 @@ ull* sampleSort(ull* arr, int n, int p) {
     cout << "3. " << p1t3End - p1t3Start << "s" << endl;
     cout << "4. " << p1t4End - p1t4Start << "s" << endl;
 
-    return sortedArr;
+    return sorted;
 }
 
 int main()
@@ -352,18 +274,18 @@ int main()
         int seed = 123;
         init_genrand64(seed);
 
-        ull* arr = new ull[n];
+        vector<ull> arr;
         for (int i = 0; i < n; i++)
         {
-            arr[i] = genrand64_int64() % 100;
+            arr.push_back(genrand64_int64() % 100);
         }
 
-        printArray(arr, n);
-
+        printArray(arr);
+    
         double startTime = omp_get_wtime();
         if (p == 1)
         {
-            mergeSort(arr, 0, n);
+            sort(arr.begin(), arr.begin() + n);
         }
         else
         {
@@ -371,23 +293,21 @@ int main()
         }
         double endTime = omp_get_wtime();
 
-        printArray(arr, n);
+        printArray(arr);
 
         // verify that the array is sorted
         for (int i = 0; i < n - 1; i++)
         {
-            if (arr[i] > arr[i + 1])
-            {
-                cout << "Error: Array not sorted" << endl;
-                cout << "index [" << i << "] : " << arr[i] << " " << arr[i + 1] << endl;
-                break;
-            }
+           if (arr[i] > arr[i + 1])
+           {
+               cout << "Error: Array not sorted" << endl;
+               cout << "index [" << i << "] : " << arr[i] << " " << arr[i + 1] << endl;
+               break;
+           }
         }
 
         double time_used = endTime - startTime;
         cout << "\nTime used in total: " << time_used << "s" << endl;
-
-        delete[] arr;
     }
     else
     {
