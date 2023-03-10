@@ -210,25 +210,25 @@ ull* sampleSort(ull* arr, int n, int p) {
     for (int i = 0; i < p; i++)
     {
         mergeSort(partitions[i], 0, partitionSize - 1);
-        // printArray(partitions[i], partitionSize);
+        printArray(partitions[i], partitionSize);
     }
     double p1t1End = omp_get_wtime();
 
     double p1t2Start = omp_get_wtime();
     ull* dividers = getDividers(partitions, div, dividersSize, partitionSize, p);
     mergeSort(dividers, 0, dividersSize - 1);
-    // printArray(dividers, dividersSize);
+    printArray(dividers, dividersSize);
     double p1t2End = omp_get_wtime();
 
     double p1t3Start = omp_get_wtime();
     ull* bucketDel = getBucketDel(dividers, div, dividersSize, p);
     ull** sizeMat = getSizeMatrix(partitions, bucketDel, partitionSize, div, p);
 
-    // printArray(bucketDel, div);
-    /* for (int i = 0; i < p; i++)
+    printArray(bucketDel, div);
+    for (int i = 0; i < p; i++)
     {
         printArray(sizeMat[i], p);
-    }*/
+    }
 
     ull* bucketSize = new ull[p];
     for (int i = 0; i < p; i++)
@@ -240,7 +240,7 @@ ull* sampleSort(ull* arr, int n, int p) {
         }
         bucketSize[i] = colSum;
     }
-    // printArray(bucketSize, p);
+    printArray(bucketSize, p);
 
     ull** bucket = new ull * [p];
     for (int i = 0; i < p; i++)
@@ -289,33 +289,41 @@ ull* sampleSort(ull* arr, int n, int p) {
             {
                 int bucketElemIndex = bucketIndices[p - 1];
                 bucket[div][bucketElemIndex] = partitions[i][j];
+                flags[i][j] = true;
                 bucketIndices[div] += 1;
             }
         }
     }
 
-    /* for (int i = 0; i < p; i++)
+    for (int i = 0; i < p; i++)
     {
         printArray(bucket[i], bucketSize[i]);
-    } */
+    }
+
+    cout << "Bucket sizes: ";
+    for (int i = 0; i < p; i++)
+    {
+        cout << bucketSize[i] << " ";
+    }
+    cout << endl;
 
     double p1t3End = omp_get_wtime();
 
     double p1t4Start = omp_get_wtime();
     for (int i = 0; i < p; i++)
     {
-        mergeSort(bucket[i], 0, bucketSize[i]);
-        // printArray(bucket[i], bucketSize[i]);
+        mergeSort(bucket[i], 0, bucketSize[i] + 1);
+        printArray(bucket[i], bucketSize[i]);
     }
     double p1t4End = omp_get_wtime();
 
-    ull* sortedArray = new ull[n];
+    ull* sortedArr = new ull[n];
     int ind = 0;
     for (int i = 0; i < p; i++)
     {
         for (int j = 0; j < bucketSize[i]; j++)
         {
-            sortedArray[ind++] = bucket[i][j];
+            sortedArr[ind++] = bucket[i][j];
         }
     }
 
@@ -324,24 +332,7 @@ ull* sampleSort(ull* arr, int n, int p) {
     cout << "3. " << p1t3End - p1t3Start << "s" << endl;
     cout << "4. " << p1t4End - p1t4Start << "s" << endl;
 
-    for (int i = 0; i < p; i++)
-    {
-        delete[] partitions[i];
-        delete[] sizeMat[i];
-        delete[] bucket[i];
-        delete[] flags[i];
-    }
-
-    delete[] partitions;
-    delete[] dividers;
-    delete[] bucketDel;
-    delete[] sizeMat;
-    delete[] bucketSize;
-    delete[] bucket;
-    delete[] flags;
-    delete[] bucketIndices;
-
-    return sortedArray;
+    return sortedArr;
 }
 
 int main()
@@ -356,7 +347,7 @@ int main()
 
     if (n % p == 0)
     {
-        // omp_set_num_threads(p);
+        omp_set_num_threads(p);
 
         int seed = 123;
         init_genrand64(seed);
@@ -367,20 +358,28 @@ int main()
             arr[i] = genrand64_int64() % 100;
         }
 
-        // printArray(arr, n);
+        printArray(arr, n);
 
         double startTime = omp_get_wtime();
-        ull* sortedArr = sampleSort(arr, n, p);
+        if (p == 1)
+        {
+            mergeSort(arr, 0, n);
+        }
+        else
+        {
+            arr = sampleSort(arr, n, p);
+        }
         double endTime = omp_get_wtime();
 
-        // printArray(sortedArr, n);
+        printArray(arr, n);
 
         // verify that the array is sorted
         for (int i = 0; i < n - 1; i++)
         {
-            if (sortedArr[i] > sortedArr[i + 1])
+            if (arr[i] > arr[i + 1])
             {
                 cout << "Error: Array not sorted" << endl;
+                cout << "index [" << i << "] : " << arr[i] << " " << arr[i + 1] << endl;
                 break;
             }
         }
