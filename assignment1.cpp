@@ -20,100 +20,90 @@ void printArray(vector<ull> arr)
 
 ull sum(vector<ull> arr, int end)
 {
-    ull sum = 0;
+    ull s = 0;
     for (int i = 0; i < end; i++)
     {
-        sum += arr[i];
+        s += arr[i];
     }
-    return sum;
+    return s;
 }
 
-vector<vector<ull> > getPartitions(vector<ull> arr, int size, int p)
+void fillArrayWithDividers(vector<ull> &del, vector<ull> &arr, int p, int nonDivAmount, int step)
 {
-    vector<vector<ull> > partitions(p);
-
-    for (int i = 0; i < p; i++)
-    {
-        int start = i * size;
-        int end = start + size - 1;
-
-        partitions[i].resize(end - start + 1);
-
-        for (int j = start, k = 0; j <= end; j++, k++)
-        {
-            partitions[i][k] = arr[j];
-        }
-    }
-
-    return partitions;
-}
-
-vector<ull> getDividers(vector<vector<ull> > partitions, int div, int divSize, int size, int p)
-{
-    int nonDiv = size - div;
-    vector<ull> dividers(divSize);
-
-    int step = nonDiv / p + 1;
-    int divIndex = 0;
-
-    for (int i = 0; i < p; i++)
-    {
-        int r = nonDiv % p;
-        int q = -1;
-
-        for (int j = 1; j < p; j++)
-        {
-            q += step;
-            dividers[divIndex++] = partitions[i][q];
-            if (r > 0)
-            {
-                q++;
-                r--;
-            }
-        }
-    }
-
-    return dividers;
-}
-
-vector<ull> getBucketDel(vector<ull> dividers, int div, int divSize, int p)
-{
-    vector<ull> bucketDel(div);
-
-    int notDel = divSize - div;
-    int delStep = notDel / p + 1;
-    int rem = notDel % p;
+    int rem = nonDivAmount % p;
     int k = -1;
 
-    int bucketDelIndex = 0;
-
-    for (int i = 1; i < p; i++)
+    for (int j = 1; j < p; j++)
     {
-        k += delStep;
-        bucketDel[bucketDelIndex++] = dividers[k];
+        k += step;
+        del.push_back(arr[k]);
         if (rem > 0)
         {
             k++;
             rem--;
         }
     }
-
-    return bucketDel;
 }
 
-vector<vector<ull> > getSizeMatrix(vector<vector<ull> > partitions, vector<ull> bucketDel, int partitionSize, int div, int p)
+vector<ull> sampleSort(vector<ull> &arr, int n, int p)
 {
+    int subseqSize = n / p;
+    int div = p - 1;
+    int divTotal = p * div;
+
+    double p1t1Start = omp_get_wtime();
+
+    vector<vector<ull> > subseqVector(p);
+
+    for (int i = 0; i < p; i++)
+    {
+        int start = i * subseqSize;
+        int end = start + subseqSize - 1;
+
+        for (int j = start; j <= end; j++)
+        {
+            subseqVector[i].push_back(arr[j]);
+        }
+
+        sort(subseqVector[i].begin(), subseqVector[i].begin() + subseqSize);
+    }
+
+    double p1t1End = omp_get_wtime();
+
+    double p1t2Start = omp_get_wtime();
+
+    vector<ull> divVector;
+
+    int nonDivOfBucket = subseqSize - div;
+    int stepOfBucket = nonDivOfBucket / p + 1;
+
+    for (int i = 0; i < p; i++)
+    {
+        fillArrayWithDividers(divVector, subseqVector[i], p, nonDivOfBucket, stepOfBucket);
+    }
+
+    sort(divVector.begin(), divVector.begin() + divTotal);
+
+    double p1t2End = omp_get_wtime();
+
+    double p1t3Start = omp_get_wtime();
+
+    vector<ull> bucketDel;
+
+    int nonDiv = divTotal - div;
+    int step = nonDiv / p + 1;
+    fillArrayWithDividers(bucketDel, divVector, p, nonDiv, step);
+
     vector<vector<ull> > sizeMat(p);
 
     for (int i = 0; i < p; i++)
     {
-        sizeMat[i].resize(p);
+        sizeMat[i].resize(p, 0);
         for (int k = 0; k < div; k++)
         {
-            sizeMat[i][k] = 0;
-            for (int j = 0; j < partitionSize; j++)
+            for (int j = 0; j < subseqSize; j++)
             {
-                if (partitions[i][j] < bucketDel[k])
+                if (subseqVector[i][j] < bucketDel[k])
                 {
                     sizeMat[i][k] += 1;
                 }
@@ -127,44 +117,11 @@ vector<vector<ull> > getSizeMatrix(vector<vector<ull> > partitions, vector<ull> 
         {
             sizeMat[i][j] -= sum(sizeMat[i], j);
         }
-        sizeMat[i][div] = partitionSize - sum(sizeMat[i], div);
-    }
-
-    return sizeMat;
-}
-
-vector<ull> sampleSort(const vector<ull>& arr, int n, int p)
-{
-    int partitionSize = n / p;
-    int div = p - 1;
-    int divSize = p * div;
-
-    double p1t1Start = omp_get_wtime();
-    vector<vector<ull> > partitions = getPartitions(arr, partitionSize, p);
-    for (int i = 0; i < p; i++)
-    {
-        sort(partitions[i].begin(), partitions[i].begin() + partitionSize);
-        printArray(partitions[i]);
-    }
-    double p1t1End = omp_get_wtime();
-
-    double p1t2Start = omp_get_wtime();
-    vector<ull> dividers = getDividers(partitions, div, divSize, partitionSize, p);
-    sort(dividers.begin(), dividers.begin() + divSize);
-    printArray(dividers);
-    double p1t2End = omp_get_wtime();
-
-    double p1t3Start = omp_get_wtime();
-    vector<ull> bucketDel = getBucketDel(dividers, div, divSize, p);
-    vector<vector<ull> > sizeMat = getSizeMatrix(partitions, bucketDel, partitionSize, div, p);
-
-    printArray(bucketDel);
-    for (int i = 0; i < p; i++)
-    {
-        printArray(sizeMat[i]);
+        sizeMat[i][div] = subseqSize - sum(sizeMat[i], div);
     }
     
     vector<ull> bucketSize(p, 0);
+
     for (int i = 0; i < p; i++)
     {
         for (int j = 0; j < p; j++)
@@ -172,40 +129,29 @@ vector<ull> sampleSort(const vector<ull>& arr, int n, int p)
             bucketSize[i] += sizeMat[j][i];
         }
     }
-    printArray(bucketSize);
 
     vector<vector<ull> > bucket(p);
-    for (int i = 0; i < p; i++)
-    {
-        bucket[i].resize(bucketSize[i]);
-    }
-    
+
     vector<vector<bool> > flags(p);
+
     for (int i = 0; i < p; i++)
     {
-        flags[i].resize(partitionSize);
-        for (int j = 0; j < partitionSize; j++)
+        for (int j = 0; j < subseqSize; j++)
         {
-            flags[i][j] = false;
+            flags[i].push_back(false);
         }
     }
 
-    
-    vector<ull> bucketIndices(p, 0);
-    printArray(bucketIndices);
-    
     for (int i = 0; i < p; i++)
     {
         for (int j = 0; j < div; j++)
         {
-            for (int k = 0; k < partitionSize; k++)
+            for (int k = 0; k < subseqSize; k++)
             {
-                if (partitions[i][k] < bucketDel[j] && !flags[i][k])
+                if (subseqVector[i][k] < bucketDel[j] && !flags[i][k])
                 {
-                    int bucketElemIndex = bucketIndices[j];
-                    bucket[j][bucketElemIndex] = partitions[i][k];
+                    bucket[j].push_back(subseqVector[i][k]);
                     flags[i][k] = true;
-                    bucketIndices[j] += 1;
                 }
             }
         }
@@ -213,35 +159,30 @@ vector<ull> sampleSort(const vector<ull>& arr, int n, int p)
 
     for (int i = 0; i < p; i++)
     {
-        for (int j = 0; j < partitionSize; j++)
+        for (int j = 0; j < subseqSize; j++)
         {
-            if (partitions[i][j] >= bucketDel[div - 1])
+            if (subseqVector[i][j] >= bucketDel[div - 1])
             {
-                int bucketElemIndex = bucketIndices[p - 1];
-                bucket[div][bucketElemIndex] = partitions[i][j];
+                bucket[div].push_back(subseqVector[i][j]);
                 flags[i][j] = true;
-                bucketIndices[div] += 1;
             }
         }
     }
-    
-    for (int i = 0; i < p; i++)
-    {
-        printArray(bucket[i]);
-    }
-    
+
     double p1t3End = omp_get_wtime();
 
     double p1t4Start = omp_get_wtime();
+
     for (int i = 0; i < p; i++)
     {
         sort(bucket[i].begin(), bucket[i].begin() + bucketSize[i]);
-        printArray(bucket[i]);
     }
+
     double p1t4End = omp_get_wtime();
 
     vector<ull> sorted;
-    for (int i = 0; i < p; i++) 
+
+    for (int i = 0; i < p; i++)
     {
         for (int j = 0; j < bucketSize[i]; j++)
         {
@@ -267,7 +208,7 @@ int main()
     cin >> p;
     cout << endl;
 
-    if (n % p == 0)
+    if (p > 0 && n % p == 0)
     {
         omp_set_num_threads(p);
 
@@ -280,8 +221,8 @@ int main()
             arr.push_back(genrand64_int64() % 100);
         }
 
-        printArray(arr);
-    
+        // printArray(arr);
+
         double startTime = omp_get_wtime();
         if (p == 1)
         {
@@ -293,18 +234,16 @@ int main()
         }
         double endTime = omp_get_wtime();
 
-        printArray(arr);
-
-        // verify that the array is sorted
         for (int i = 0; i < n - 1; i++)
         {
-           if (arr[i] > arr[i + 1])
-           {
-               cout << "Error: Array not sorted" << endl;
-               cout << "index [" << i << "] : " << arr[i] << " " << arr[i + 1] << endl;
-               break;
-           }
+            if (arr[i] > arr[i + 1])
+            {
+                cout << "Error: Array not sorted (arr[" << i << "] > arr[" << i + 1 << "] : " << arr[i] << " > " << arr[i + 1] << ")" << endl;
+                break;
+            }
         }
+
+        // printArray(arr);
 
         double time_used = endTime - startTime;
         cout << "\nTime used in total: " << time_used << "s" << endl;
