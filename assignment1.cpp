@@ -1,5 +1,6 @@
 #include <iostream>
 #include <algorithm>
+#include <fstream>
 #include <vector>
 #include <omp.h>
 #include <cmath>
@@ -8,6 +9,7 @@
 using namespace std;
 
 #define ull unsigned long long
+ofstream file;
 
 void printArray(vector<ull> arr)
 {
@@ -136,9 +138,10 @@ vector<ull> sampleSort(vector<ull> &arr, int n, int p)
 
     for (int i = 0; i < p; i++)
     {
+        flags[i].resize(subseqSize);
         for (int j = 0; j < subseqSize; j++)
         {
-            flags[i].push_back(false);
+            flags[i][j] = false;
         }
     }
 
@@ -184,16 +187,13 @@ vector<ull> sampleSort(vector<ull> &arr, int n, int p)
 
     for (int i = 0; i < p; i++)
     {
-        for (int j = 0; j < bucketSize[i]; j++)
-        {
-            sorted.push_back(bucket[i][j]);
-        }
+        sorted.insert(sorted.end(), bucket[i].begin(), bucket[i].end());
     }
 
-    cout << "1. " << p1t1End - p1t1Start << "s" << endl;
-    cout << "2. " << p1t2End - p1t2Start << "s" << endl;
-    cout << "3. " << p1t3End - p1t3Start << "s" << endl;
-    cout << "4. " << p1t4End - p1t4Start << "s" << endl;
+    file << p1t1End - p1t1Start << ",";
+    file << p1t2End - p1t2Start << ",";
+    file << p1t3End - p1t3Start << ",";
+    file << p1t4End - p1t4Start << ",";
 
     return sorted;
 }
@@ -202,56 +202,73 @@ int main()
 {
     int n, p;
 
-    cout << "Enter n: ";
-    cin >> n;
-    cout << "Enter p: ";
-    cin >> p;
-    cout << endl;
+    // cout << "Enter n: ";
+    // cin >> n;
+    // cout << "Enter p: ";
+    // cin >> p;
+    // cout << endl;
 
-    if (p > 0 && n % p == 0)
+    file.open("log.csv");
+    
+    int nArr[3] = {10000000, 20000000, 50000000};
+    int pArr[8] = {1, 2, 5, 10, 20, 40, 50, 80};
+
+    for (int i = 0; i < 3; i++)
     {
-        omp_set_num_threads(p);
-
-        int seed = 123;
-        init_genrand64(seed);
-
-        vector<ull> arr;
-        for (int i = 0; i < n; i++)
+        for (int j = 0 ; j < 8; j++)
         {
-            arr.push_back(genrand64_int64() % 100);
-        }
+            int n = nArr[i], p = pArr[j];
 
-        // printArray(arr);
-
-        double startTime = omp_get_wtime();
-        if (p == 1)
-        {
-            sort(arr.begin(), arr.begin() + n);
-        }
-        else
-        {
-            arr = sampleSort(arr, n, p);
-        }
-        double endTime = omp_get_wtime();
-
-        for (int i = 0; i < n - 1; i++)
-        {
-            if (arr[i] > arr[i + 1])
+            if (p > 0 && n % p == 0)
             {
-                cout << "Error: Array not sorted (arr[" << i << "] > arr[" << i + 1 << "] : " << arr[i] << " > " << arr[i + 1] << ")" << endl;
-                break;
+                file << n << "," << p << ",";
+
+                omp_set_num_threads(p);
+
+                int seed = 123;
+                init_genrand64(seed);
+
+                vector<ull> arr;
+                for (int i = 0; i < n; i++)
+                {
+                    arr.push_back(genrand64_int64() % 100);
+                }
+
+                // printArray(arr);
+
+                double startTime = omp_get_wtime();
+                if (p == 1)
+                {
+                    sort(arr.begin(), arr.begin() + n);
+                }
+                else
+                {
+                    arr = sampleSort(arr, n, p);
+                }
+                double endTime = omp_get_wtime();
+
+                for (int i = 0; i < n - 1; i++)
+                {
+                    if (arr[i] > arr[i + 1])
+                    {
+                        cout << "Error: Array not sorted (arr[" << i << "] > arr[" << i + 1 << "] : " << arr[i] << " > " << arr[i + 1] << ")" << endl;
+                        break;
+                    }
+                }
+
+                // printArray(arr);
+
+                double time_used = endTime - startTime;
+                file << time_used << endl;
+            }
+            else
+            {
+                cout << "Please choose p and n such that p is divisible by n" << endl;
             }
         }
-
-        // printArray(arr);
-
-        double time_used = endTime - startTime;
-        cout << "\nTime used in total: " << time_used << "s" << endl;
-    }
-    else
-    {
-        cout << "Please choose p and n such that p is divisible by n" << endl;
     }
 
+    file.close();
+    
     return 0;
 }
