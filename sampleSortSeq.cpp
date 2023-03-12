@@ -133,6 +133,10 @@ vector<ull> sampleSort(vector<ull> &arr, int n, int p)
     }
 
     vector<vector<ull> > bucket(p);
+    for (int i = 0; i < p; i++)
+    {
+        bucket[i].resize(bucketSize[i]);
+    }
 
     vector<vector<bool> > flags(p);
 
@@ -145,6 +149,8 @@ vector<ull> sampleSort(vector<ull> &arr, int n, int p)
         }
     }
 
+    vector<ull> bucketIndices(p, 0);
+
     for (int i = 0; i < p; i++)
     {
         for (int j = 0; j < div; j++)
@@ -153,12 +159,15 @@ vector<ull> sampleSort(vector<ull> &arr, int n, int p)
             {
                 if (subseqVector[i][k] < bucketDel[j] && !flags[i][k])
                 {
-                    bucket[j].push_back(subseqVector[i][k]);
+                    int bucketElemIndex = bucketIndices[j];
+                    bucket[j][bucketElemIndex] = subseqVector[i][k];
                     flags[i][k] = true;
+                    bucketIndices[j] += 1;
                 }
             }
         }
     }
+    
 
     for (int i = 0; i < p; i++)
     {
@@ -166,8 +175,10 @@ vector<ull> sampleSort(vector<ull> &arr, int n, int p)
         {
             if (subseqVector[i][j] >= bucketDel[div - 1])
             {
-                bucket[div].push_back(subseqVector[i][j]);
+                int bucketElemIndex = bucketIndices[p - 1];
+                bucket[div][bucketElemIndex] = subseqVector[i][j];
                 flags[i][j] = true;
+                bucketIndices[div] += 1;
             }
         }
     }
