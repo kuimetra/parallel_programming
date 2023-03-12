@@ -49,13 +49,26 @@ void fillArrayWithDividers(vector<ull> &del, vector<ull> &arr, int p, int nonDiv
 
 vector<ull> sampleSort(vector<ull> &arr, int n, int p)
 {
+    // allocation of memory and initialization
+
     int subseqSize = n / p;
     int div = p - 1;
     int divTotal = p * div;
 
-    double p1t1Start = omp_get_wtime();
+    int nonDivOfBucket = subseqSize - div;
+    int stepOfBucket = nonDivOfBucket / p + 1;
+    int nonDiv = divTotal - div;
+    int step = nonDiv / p + 1;
 
     vector<vector<ull> > subseqVector(p);
+    vector<ull> divVector;
+    vector<ull> bucketDel;
+    vector<vector<ull> > sizeMat(p);
+    vector<ull> bucketSize(p, 0);
+    vector<vector<ull> > bucket(p);
+    vector<vector<bool> > flags(p);
+    vector<ull> bucketIndices(p, 0);
+    vector<ull> sorted;
 
     for (int i = 0; i < p; i++)
     {
@@ -66,18 +79,18 @@ vector<ull> sampleSort(vector<ull> &arr, int n, int p)
         {
             subseqVector[i].push_back(arr[j]);
         }
-
-        sort(subseqVector[i].begin(), subseqVector[i].begin() + subseqSize);
     }
 
-    double p1t1End = omp_get_wtime();
+    double startTime = omp_get_wtime(), t1Start = omp_get_wtime();
 
-    double p1t2Start = omp_get_wtime();
+    for (int i = 0; i < p; i++)
+    {
+        sort(subseqVector[i].begin(), subseqVector[i].end());
+    }
 
-    vector<ull> divVector;
+    double t1End = omp_get_wtime();
 
-    int nonDivOfBucket = subseqSize - div;
-    int stepOfBucket = nonDivOfBucket / p + 1;
+    double t2Start = omp_get_wtime();
 
     for (int i = 0; i < p; i++)
     {
@@ -86,17 +99,11 @@ vector<ull> sampleSort(vector<ull> &arr, int n, int p)
 
     sort(divVector.begin(), divVector.begin() + divTotal);
 
-    double p1t2End = omp_get_wtime();
+    double t2End = omp_get_wtime();
 
-    double p1t3Start = omp_get_wtime();
+    double t3Start = omp_get_wtime();
 
-    vector<ull> bucketDel;
-
-    int nonDiv = divTotal - div;
-    int step = nonDiv / p + 1;
     fillArrayWithDividers(bucketDel, divVector, p, nonDiv, step);
-
-    vector<vector<ull> > sizeMat(p);
 
     for (int i = 0; i < p; i++)
     {
@@ -121,8 +128,6 @@ vector<ull> sampleSort(vector<ull> &arr, int n, int p)
         }
         sizeMat[i][div] = subseqSize - sum(sizeMat[i], div);
     }
-    
-    vector<ull> bucketSize(p, 0);
 
     for (int i = 0; i < p; i++)
     {
@@ -132,13 +137,10 @@ vector<ull> sampleSort(vector<ull> &arr, int n, int p)
         }
     }
 
-    vector<vector<ull> > bucket(p);
     for (int i = 0; i < p; i++)
     {
         bucket[i].resize(bucketSize[i]);
     }
-
-    vector<vector<bool> > flags(p);
 
     for (int i = 0; i < p; i++)
     {
@@ -148,8 +150,6 @@ vector<ull> sampleSort(vector<ull> &arr, int n, int p)
             flags[i][j] = false;
         }
     }
-
-    vector<ull> bucketIndices(p, 0);
 
     for (int i = 0; i < p; i++)
     {
@@ -167,7 +167,6 @@ vector<ull> sampleSort(vector<ull> &arr, int n, int p)
             }
         }
     }
-    
 
     for (int i = 0; i < p; i++)
     {
@@ -183,28 +182,29 @@ vector<ull> sampleSort(vector<ull> &arr, int n, int p)
         }
     }
 
-    double p1t3End = omp_get_wtime();
+    double t3End = omp_get_wtime();
 
-    double p1t4Start = omp_get_wtime();
+    double t4Start = omp_get_wtime();
 
     for (int i = 0; i < p; i++)
     {
-        sort(bucket[i].begin(), bucket[i].begin() + bucketSize[i]);
+        sort(bucket[i].begin(), bucket[i].end());
     }
 
-    double p1t4End = omp_get_wtime();
-
-    vector<ull> sorted;
+    double t4End = omp_get_wtime();
 
     for (int i = 0; i < p; i++)
     {
         sorted.insert(sorted.end(), bucket[i].begin(), bucket[i].end());
     }
 
-    file << p1t1End - p1t1Start << ",";
-    file << p1t2End - p1t2Start << ",";
-    file << p1t3End - p1t3Start << ",";
-    file << p1t4End - p1t4Start << ",";
+    double endTime = omp_get_wtime();
+
+    file << t1End - t1Start << ",";
+    file << t2End - t2Start << ",";
+    file << t3End - t3Start << ",";
+    file << t4End - t4Start << ",";
+    file << endTime - startTime << endl;
 
     return sorted;
 }
@@ -213,70 +213,55 @@ int main()
 {
     int n, p;
 
-    // cout << "Enter n: ";
-    // cin >> n;
-    // cout << "Enter p: ";
-    // cin >> p;
-    // cout << endl;
+    cout << "Enter n: ";
+    cin >> n;
+    cout << "Enter p: ";
+    cin >> p;
+    cout << endl;
 
-    file.open("log.csv");
+    file.open("log_s.csv");
     
-    int nArr[3] = {10000000, 20000000, 50000000};
-    int pArr[8] = {1, 2, 5, 10, 20, 40, 50, 80};
-
-    for (int i = 0; i < 3; i++)
+    if (p > 0 && n % p == 0)
     {
-        for (int j = 0 ; j < 8; j++)
+        file << n << "," << p << ",";
+
+        int seed = 123;
+        init_genrand64(seed);
+
+        vector<ull> arr;
+        for (int i = 0; i < n; i++)
         {
-            int n = nArr[i], p = pArr[j];
+            arr.push_back(genrand64_int64() % 100000);
+        }
 
-            if (p > 0 && n % p == 0)
+        // printArray(arr);
+
+        if (p == 1)
+        {
+            double startTime = omp_get_wtime();
+            sort(arr.begin(), arr.end());
+            double endTime = omp_get_wtime();
+            file << ",,,," << endTime - startTime << endl;
+        }
+        else
+        {
+            arr = sampleSort(arr, n, p);
+        }
+
+        for (int i = 0; i < n - 1; i++)
+        {
+            if (arr[i] > arr[i + 1])
             {
-                file << n << "," << p << ",";
-
-                omp_set_num_threads(p);
-
-                int seed = 123;
-                init_genrand64(seed);
-
-                vector<ull> arr;
-                for (int i = 0; i < n; i++)
-                {
-                    arr.push_back(genrand64_int64() % 100);
-                }
-
-                // printArray(arr);
-
-                double startTime = omp_get_wtime();
-                if (p == 1)
-                {
-                    sort(arr.begin(), arr.begin() + n);
-                }
-                else
-                {
-                    arr = sampleSort(arr, n, p);
-                }
-                double endTime = omp_get_wtime();
-
-                for (int i = 0; i < n - 1; i++)
-                {
-                    if (arr[i] > arr[i + 1])
-                    {
-                        cout << "Error: Array not sorted (arr[" << i << "] > arr[" << i + 1 << "] : " << arr[i] << " > " << arr[i + 1] << ")" << endl;
-                        break;
-                    }
-                }
-
-                // printArray(arr);
-
-                double time_used = endTime - startTime;
-                file << time_used << endl;
-            }
-            else
-            {
-                cout << "Please choose p and n such that p is divisible by n" << endl;
+                cout << "Error: Array not sorted (arr[" << i << "] > arr[" << i + 1 << "] : " << arr[i] << " > " << arr[i + 1] << ")" << endl;
+                break;
             }
         }
+
+        // printArray(arr);
+    }
+    else
+    {
+        cout << "Please choose p and n such that p is divisible by n" << endl;
     }
 
     file.close();

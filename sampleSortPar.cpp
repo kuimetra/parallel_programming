@@ -50,15 +50,28 @@ void fillArrayWithDividers(vector<ull> &del, vector<ull> &arr, int p, int nonDiv
 
 vector<ull> sampleSort(vector<ull> &arr, int n, int p)
 {
+    // allocation of memory and initialization
+
     int subseqSize = n / p;
     int div = p - 1;
     int divTotal = p * div;
 
-    double p1t1Start = omp_get_wtime();
+    int nonDivOfBucket = subseqSize - div;
+    int stepOfBucket = nonDivOfBucket / p + 1;
+    int nonDiv = divTotal - div;
+    int step = nonDiv / p + 1;
 
     vector<vector<ull> > subseqVector(p);
+    vector<ull> divVector;
+    vector<ull> bucketDel;
+    vector<vector<ull> > sizeMat(p);
+    vector<ull> bucketSize(p, 0);
+    vector<vector<ull> > bucket(p);
+    vector<vector<bool> > flags(p);
+    vector<ull> bucketIndices(p, 0);
+    vector<ull> sorted;
 
-    #pragma omp parallel num_threads(p)
+    #pragma omp parallel
     {
         int tid = omp_get_thread_num();
         int start = tid * subseqSize;
@@ -68,46 +81,34 @@ vector<ull> sampleSort(vector<ull> &arr, int n, int p)
         {
             subseqVector[tid].push_back(arr[j]);
         }
-
-        sort(subseqVector[tid].begin(), subseqVector[tid].begin() + subseqSize);
     }
 
-    double p1t1End = omp_get_wtime();
+    double startTime = omp_get_wtime(), t1Start = omp_get_wtime();
 
-    double p1t2Start = omp_get_wtime();
+    #pragma omp parallel
+    {
+        int tid = omp_get_thread_num();
+        sort(subseqVector[tid].begin(), subseqVector[tid].end());
+    }
 
-    vector<ull> divVector(divTotal);
+    double t1End = omp_get_wtime();
 
-    int nonDivOfBucket = subseqSize - div;
-    int stepOfBucket = nonDivOfBucket / p + 1;
+    double t2Start = omp_get_wtime();
 
-    #pragma omp parallel for
     for (int i = 0; i < p; i++)
     {
-        vector<ull> divs;
-        fillArrayWithDividers(divs, subseqVector[i], p, nonDivOfBucket, stepOfBucket);
-
-        #pragma omp critical
-        {
-            copy(divs.begin(), divs.end(), divVector.begin() + i * divs.size());
-        }
+        fillArrayWithDividers(divVector, subseqVector[i], p, nonDivOfBucket, stepOfBucket);
     }
 
     sort(divVector.begin(), divVector.begin() + divTotal);
 
-    double p1t2End = omp_get_wtime();
+    double t2End = omp_get_wtime();
 
-    double p1t3Start = omp_get_wtime();
+    double t3Start = omp_get_wtime();
 
-    vector<ull> bucketDel;
-
-    int nonDiv = divTotal - div;
-    int step = nonDiv / p + 1;
     fillArrayWithDividers(bucketDel, divVector, p, nonDiv, step);
 
-    vector<vector<ull> > sizeMat(p);
-
-    #pragma omp parallel for shared(sizeMat, subseqVector, bucketDel) num_threads(p)
+    #pragma omp parallel for shared(sizeMat, subseqVector, bucketDel)
     for (int i = 0; i < p; i++)
     {
         sizeMat[i].resize(p, 0);
@@ -124,7 +125,7 @@ vector<ull> sampleSort(vector<ull> &arr, int n, int p)
         }
     }
 
-    #pragma omp parallel for shared(sizeMat) num_threads(p)
+    #pragma omp parallel for shared(sizeMat)
     for (int i = 0; i < p; i++)
     {
         for (int j = 1; j < div; j++)
@@ -133,10 +134,8 @@ vector<ull> sampleSort(vector<ull> &arr, int n, int p)
         }
         sizeMat[i][div] = subseqSize - sum(sizeMat[i], div);
     }
-    
-    vector<ull> bucketSize(p, 0);
 
-    #pragma omp parallel for shared(sizeMat, bucketSize) num_threads(p)
+    #pragma omp parallel for shared(sizeMat, bucketSize)
     for (int i = 0; i < p; i++)
     {
         ull s = 0;
@@ -148,15 +147,11 @@ vector<ull> sampleSort(vector<ull> &arr, int n, int p)
         bucketSize[i] = s;
     }
 
-    vector<vector<ull> > bucket(p);
-    #pragma omp parallel for shared(bucketSize, bucket) num_threads(p)
     for (int i = 0; i < p; i++)
     {
         bucket[i].resize(bucketSize[i]);
     }
 
-    vector<vector<bool> > flags(p);
-    
     for (int i = 0; i < p; i++)
     {
         flags[i].resize(subseqSize);
@@ -165,9 +160,8 @@ vector<ull> sampleSort(vector<ull> &arr, int n, int p)
             flags[i][j] = false;
         }
     }
-
-    vector<ull> bucketIndices(p, 0);
-
+    
+    #pragma omp parallel for
     for (int i = 0; i < p; i++)
     {
         for (int j = 0; j < div; j++)
@@ -176,53 +170,65 @@ vector<ull> sampleSort(vector<ull> &arr, int n, int p)
             {
                 if (subseqVector[i][k] < bucketDel[j] && !flags[i][k])
                 {
-                    int bucketElemIndex = bucketIndices[j];
+                    int bucketElemIndex;
+                    #pragma omp atomic capture
+                    {
+                        bucketElemIndex = bucketIndices[j];
+                        bucketIndices[j] += 1;
+                    }
+                    
                     bucket[j][bucketElemIndex] = subseqVector[i][k];
                     flags[i][k] = true;
-                    bucketIndices[j] += 1;
+                   
                 }
             }
         }
     }
-    
 
+    #pragma omp parallel for
     for (int i = 0; i < p; i++)
     {
         for (int j = 0; j < subseqSize; j++)
         {
             if (subseqVector[i][j] >= bucketDel[div - 1])
             {
-                int bucketElemIndex = bucketIndices[p - 1];
+                int bucketElemIndex;
+                #pragma omp atomic capture
+                {
+                    bucketElemIndex = bucketIndices[p - 1];
+                    bucketIndices[div] += 1;
+                }
+                
                 bucket[div][bucketElemIndex] = subseqVector[i][j];
                 flags[i][j] = true;
-                bucketIndices[div] += 1;
             }
         }
     }
 
-    double p1t3End = omp_get_wtime();
+    double t3End = omp_get_wtime();
 
-    double p1t4Start = omp_get_wtime();
+    double t4Start = omp_get_wtime();
 
-    #pragma omp parallel num_threads(p)
+    #pragma omp parallel
     {
         int tid = omp_get_thread_num();
-        sort(bucket[tid].begin(), bucket[tid].begin() + bucketSize[tid]);
+        sort(bucket[tid].begin(), bucket[tid].end());
     }
 
-    double p1t4End = omp_get_wtime();
-
-    vector<ull> sorted;
+    double t4End = omp_get_wtime();
 
     for (int i = 0; i < p; i++)
     {
         sorted.insert(sorted.end(), bucket[i].begin(), bucket[i].end());
     }
 
-    cout << p1t1End - p1t1Start << "\t";
-    cout << p1t2End - p1t2Start << "\t";
-    cout << p1t3End - p1t3Start << "\t";
-    cout << p1t4End - p1t4Start << endl;
+    double endTime = omp_get_wtime();
+
+    file << t1End - t1Start << ",";
+    file << t2End - t2Start << ",";
+    file << t3End - t3Start << ",";
+    file << t4End - t4Start << ",";
+    file << endTime - startTime << endl;
 
     return sorted;
 }
@@ -237,8 +243,12 @@ int main()
     cin >> p;
     cout << endl;
 
+    file.open("log_p.csv");
+    
     if (p > 0 && n % p == 0)
     {
+        file << n << "," << p << ",";
+        
         omp_set_num_threads(p);
 
         int seed = 123;
@@ -247,21 +257,22 @@ int main()
         vector<ull> arr;
         for (int i = 0; i < n; i++)
         {
-            arr.push_back(genrand64_int64() % 100);
+            arr.push_back(genrand64_int64() % 100000);
         }
 
         // printArray(arr);
 
-        double startTime = omp_get_wtime();
         if (p == 1)
         {
-            sort(arr.begin(), arr.begin() + n);
+            double startTime = omp_get_wtime();
+            sort(arr.begin(), arr.end());
+            double endTime = omp_get_wtime();
+            file << ",,,," << endTime - startTime << endl;
         }
         else
         {
             arr = sampleSort(arr, n, p);
         }
-        double endTime = omp_get_wtime();
 
         for (int i = 0; i < n - 1; i++)
         {
@@ -273,14 +284,13 @@ int main()
         }
 
         // printArray(arr);
-
-        double time_used = endTime - startTime;
-        cout << time_used << endl;
     }
     else
     {
         cout << "Please choose p and n such that p is divisible by n" << endl;
     }
-    
+
+    file.close();
+
     return 0;
 }
